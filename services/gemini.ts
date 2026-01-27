@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const getAiSupportResponse = async (userMessage: string, context: string) => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: userMessage,
       config: {
         systemInstruction: `You are the WhiteTriangle P2P Support Assistant. 
@@ -15,9 +15,11 @@ export const getAiSupportResponse = async (userMessage: string, context: string)
         2. Seller delivers the electronic asset.
         3. Escrow releases PayPal funds to Seller once Buyer confirms receipt.
         Current Context: ${context}.
-        Be professional, concise, and helpful. Use Google Search to provide up-to-date market rates or security advice if relevant.`,
+        Be professional, concise, and helpful. Use Google Search to provide up-to-date market rates or security advice if relevant.
+        You have a high thinking budget for complex reasoning; use it to ensure user safety and precise guidance.`,
         tools: [{ googleSearch: {} }],
-        temperature: 0.7,
+        thinkingConfig: { thinkingBudget: 32768 },
+        temperature: 1, // Recommended for thinking models to allow exploration
       },
     });
 

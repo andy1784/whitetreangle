@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Order, OrderStatus, Message, LoginEvent, ActiveSession } from './types';
 import { getAiSupportResponse } from './services/gemini';
 import Navbar from './components/Navbar';
@@ -15,6 +15,11 @@ const App: React.FC = () => {
   const [authStep, setAuthStep] = useState<AuthStep>('EMAIL');
   const [otp, setOtp] = useState('');
   
+  // Dashboard Filters
+  const [tradeFilterType, setTradeFilterType] = useState<string>('ALL');
+  const [tradeFilterCurrency, setTradeFilterCurrency] = useState<string>('ALL');
+  const [tradeFilterStatus, setTradeFilterStatus] = useState<string>('ALL');
+
   const [orders, setOrders] = useState<Order[]>([
     {
       id: 'ord_1',
@@ -42,7 +47,7 @@ const App: React.FC = () => {
 
   const [supportOpen, setSupportOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Message[]>([
-    { role: 'model', text: 'Hello! I am your WhiteTriangle AI assistant. How can I help you with your secure P2P exchange today?' }
+    { role: 'model', text: 'Hello! I am your WhiteTriangle AI assistant. I am now powered by an advanced thinking model for complex security queries. How can I help you today?' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -125,10 +130,10 @@ const App: React.FC = () => {
     }
     const newOrder: Order = {
       id: 'ord_' + Math.random().toString(36).substr(2, 5),
-      type: 'BUY',
-      amount: 250,
-      currency: 'USDT',
-      price: 1.00,
+      type: Math.random() > 0.5 ? 'BUY' : 'SELL',
+      amount: Math.floor(Math.random() * 2000) + 100,
+      currency: Math.random() > 0.5 ? 'USDT' : 'BTC',
+      price: Math.random() > 0.5 ? 1.00 : 65000,
       status: OrderStatus.PENDING,
       creatorId: user.id,
       creatorEmail: user.email,
@@ -148,6 +153,18 @@ const App: React.FC = () => {
       alert("Payment Locked in Escrow. Waiting for Seller delivery.");
     }, 1500);
   };
+
+  // Memoized Filtered Trades
+  const filteredUserOrders = useMemo(() => {
+    if (!user) return [];
+    return orders.filter(o => {
+      const isOwner = o.creatorId === user.id;
+      const matchType = tradeFilterType === 'ALL' || o.type === tradeFilterType;
+      const matchCurrency = tradeFilterCurrency === 'ALL' || o.currency === tradeFilterCurrency;
+      const matchStatus = tradeFilterStatus === 'ALL' || o.status === tradeFilterStatus;
+      return isOwner && matchType && matchCurrency && matchStatus;
+    });
+  }, [orders, user, tradeFilterType, tradeFilterCurrency, tradeFilterStatus]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -174,7 +191,7 @@ const App: React.FC = () => {
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                  Create Buy Offer
+                  Create New Trade Offer
                 </button>
               </div>
             </div>
@@ -301,7 +318,41 @@ const App: React.FC = () => {
 
         {currentPage === 'dashboard' && user && (
           <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm animate-in fade-in duration-500">
-            <h2 className="text-2xl font-bold mb-6">Your Trading Dashboard</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+              <h2 className="text-2xl font-bold">My Trading Dashboard</h2>
+              <div className="flex flex-wrap gap-3">
+                <select 
+                  value={tradeFilterType}
+                  onChange={(e) => setTradeFilterType(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="ALL">All Types</option>
+                  <option value="BUY">Buy</option>
+                  <option value="SELL">Sell</option>
+                </select>
+                <select 
+                  value={tradeFilterCurrency}
+                  onChange={(e) => setTradeFilterCurrency(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="ALL">All Currencies</option>
+                  <option value="USDT">USDT</option>
+                  <option value="BTC">BTC</option>
+                </select>
+                <select 
+                  value={tradeFilterStatus}
+                  onChange={(e) => setTradeFilterStatus(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value={OrderStatus.PENDING}>Pending</option>
+                  <option value={OrderStatus.ESCROW_LOCKED}>Escrow Locked</option>
+                  <option value={OrderStatus.COMPLETED}>Completed</option>
+                  <option value={OrderStatus.DISPUTED}>Disputed</option>
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
@@ -319,27 +370,59 @@ const App: React.FC = () => {
               </div>
 
               <div className="mt-8">
-                <h3 className="text-lg font-bold mb-4">Your Active Trades</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold">Trade History ({filteredUserOrders.length})</h3>
+                  {(tradeFilterType !== 'ALL' || tradeFilterCurrency !== 'ALL' || tradeFilterStatus !== 'ALL') && (
+                    <button 
+                      onClick={() => {
+                        setTradeFilterType('ALL');
+                        setTradeFilterCurrency('ALL');
+                        setTradeFilterStatus('ALL');
+                      }}
+                      className="text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-4">
-                  {orders.filter(o => o.creatorId === user.id).length > 0 ? (
-                    orders.filter(o => o.creatorId === user.id).map(o => (
+                  {filteredUserOrders.length > 0 ? (
+                    filteredUserOrders.map(o => (
                       <div key={o.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-lg ${o.type === 'BUY' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                          <div className={`p-2 rounded-lg font-bold text-xs ${o.type === 'BUY' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                             {o.type}
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900">{o.amount} {o.currency}</p>
-                            <p className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()}</p>
+                            <p className="font-bold text-gray-900">{o.amount.toLocaleString()} {o.currency}</p>
+                            <p className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()} • ID: {o.id.slice(0, 8)}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900 uppercase">{o.status}</p>
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${
+                            o.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' : 
+                            o.status === OrderStatus.ESCROW_LOCKED ? 'bg-orange-100 text-orange-700' :
+                            o.status === OrderStatus.DISPUTED ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {o.status}
+                          </span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center py-8 text-gray-400 italic">No active trades found.</p>
+                    <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-gray-400 font-medium italic">No trades matching your filters.</p>
+                      <button 
+                        onClick={() => {
+                          setTradeFilterType('ALL');
+                          setTradeFilterCurrency('ALL');
+                          setTradeFilterStatus('ALL');
+                        }}
+                        className="mt-2 text-sm text-blue-600 font-bold"
+                      >
+                        Reset all filters
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -357,7 +440,7 @@ const App: React.FC = () => {
             </div>
             <div>
               <p className="text-white font-bold text-sm">Escrow Assistant</p>
-              <p className="text-blue-100 text-[10px]">Secure & Grounded AI</p>
+              <p className="text-blue-100 text-[10px]">Thinking-Enabled Security</p>
             </div>
           </div>
           <button onClick={() => setSupportOpen(false)} className="text-white/80 hover:text-white">
@@ -394,7 +477,7 @@ const App: React.FC = () => {
             <div className="flex justify-start">
               <div className="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-gray-400 italic flex items-center gap-2">
                 <span className="flex gap-1"><span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></span><span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce delay-75"></span><span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce delay-150"></span></span>
-                Analyzing security context...
+                Analyzing deep context...
               </div>
             </div>
           )}
@@ -405,7 +488,7 @@ const App: React.FC = () => {
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Help with 2FA or trades..."
+            placeholder="Deep reasoning support..."
             className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button 
@@ -425,7 +508,7 @@ const App: React.FC = () => {
       </button>
 
       <footer className="bg-white border-t border-gray-100 py-8 text-center text-gray-400 text-sm">
-        <p>© 2024 WhiteTriangle P2P. Multi-factor Protected.</p>
+        <p>© 2024 WhiteTriangle P2P. Enhanced Intelligence & Safety.</p>
       </footer>
     </div>
   );
