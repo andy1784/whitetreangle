@@ -1,0 +1,27 @@
+
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export const getAiSupportResponse = async (userMessage: string, context: string) => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: userMessage,
+      config: {
+        systemInstruction: `You are the WhiteTriangle P2P Support Assistant. 
+        The "White Triangle" logic is our secure 3-way escrow system:
+        1. Buyer pays via PayPal to our Escrow.
+        2. Seller delivers the electronic asset.
+        3. Escrow releases PayPal funds to Seller once Buyer confirms receipt.
+        Current Context: ${context}.
+        Be professional, concise, and helpful. Always emphasize security.`,
+        temperature: 0.7,
+      },
+    });
+    return response.text;
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return "I'm having trouble connecting to my brain right now. Please try again or contact a human admin.";
+  }
+};

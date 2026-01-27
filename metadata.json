@@ -1,0 +1,7 @@
+{
+  "name": "WhiteTriangle P2P Exchange",
+  "description": "A secure P2P electronic payment exchange platform featuring a 'White Triangle' escrow system, PayPal integration, and AI-powered support.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
