@@ -15,13 +15,26 @@ export const getAiSupportResponse = async (userMessage: string, context: string)
         2. Seller delivers the electronic asset.
         3. Escrow releases PayPal funds to Seller once Buyer confirms receipt.
         Current Context: ${context}.
-        Be professional, concise, and helpful. Always emphasize security.`,
+        Be professional, concise, and helpful. Use Google Search to provide up-to-date market rates or security advice if relevant.`,
+        tools: [{ googleSearch: {} }],
         temperature: 0.7,
       },
     });
-    return response.text;
+
+    const text = response.text || "I'm sorry, I couldn't process that.";
+    
+    // Extract grounding URLs from metadata if present
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const links = groundingChunks
+      ?.map(chunk => chunk.web)
+      .filter((web): web is { uri: string; title: string } => !!web && !!web.uri) || [];
+
+    return { text, links };
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "I'm having trouble connecting to my brain right now. Please try again or contact a human admin.";
+    return { 
+      text: "I'm having trouble connecting to my brain right now. Please try again or contact a human admin.", 
+      links: [] 
+    };
   }
 };

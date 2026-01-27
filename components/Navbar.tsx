@@ -36,6 +36,12 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onNavigate, currentPage
         >
           My Trades
         </button>
+        <button 
+          onClick={() => onNavigate('security')}
+          className={`text-sm font-medium ${currentPage === 'security' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+        >
+          Security
+        </button>
         {user?.role === 'ADMIN' && (
           <button 
             onClick={() => onNavigate('admin')}
