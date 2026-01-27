@@ -27,6 +27,8 @@ const App: React.FC = () => {
       amount: 1500,
       currency: 'USDT',
       price: 1.01,
+      commission: 1500 * 0.008,
+      totalAmount: 1500 * 1.008,
       status: OrderStatus.PENDING,
       creatorId: 'user_2',
       creatorEmail: 'seller_example@mail.com',
@@ -38,6 +40,8 @@ const App: React.FC = () => {
       amount: 500,
       currency: 'BTC',
       price: 65000,
+      commission: 500 * 0.008,
+      totalAmount: 500 * 1.008,
       status: OrderStatus.ESCROW_LOCKED,
       creatorId: 'user_3',
       creatorEmail: 'crypto_whale@mail.com',
@@ -52,7 +56,6 @@ const App: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Authentication Mock
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.includes('@')) {
@@ -104,7 +107,6 @@ const App: React.FC = () => {
     setUser({ ...user, is2FAEnabled: !user.is2FAEnabled });
   };
 
-  // Chat handling
   const sendMessage = async () => {
     if (!chatInput.trim()) return;
     const userMsg = chatInput;
@@ -112,7 +114,7 @@ const App: React.FC = () => {
     setChatInput('');
     setIsTyping(true);
 
-    const context = `User is currently on ${currentPage} page. User role is ${user?.role || 'Guest'}. 2FA is ${user?.is2FAEnabled ? 'enabled' : 'disabled'}.`;
+    const context = `User is currently on ${currentPage} page. User role is ${user?.role || 'Guest'}. 2FA is ${user?.is2FAEnabled ? 'enabled' : 'disabled'}. Platform fee is 0.8%.`;
     const result = await getAiSupportResponse(userMsg, context);
     
     setChatMessages(prev => [...prev, { 
@@ -128,12 +130,16 @@ const App: React.FC = () => {
       setCurrentPage('auth');
       return;
     }
+    const amount = Math.floor(Math.random() * 2000) + 100;
+    const commission = amount * 0.008;
     const newOrder: Order = {
       id: 'ord_' + Math.random().toString(36).substr(2, 5),
       type: Math.random() > 0.5 ? 'BUY' : 'SELL',
-      amount: Math.floor(Math.random() * 2000) + 100,
+      amount: amount,
       currency: Math.random() > 0.5 ? 'USDT' : 'BTC',
       price: Math.random() > 0.5 ? 1.00 : 65000,
+      commission: commission,
+      totalAmount: amount + commission,
       status: OrderStatus.PENDING,
       creatorId: user.id,
       creatorEmail: user.email,
@@ -154,7 +160,6 @@ const App: React.FC = () => {
     }, 1500);
   };
 
-  // Memoized Filtered Trades
   const filteredUserOrders = useMemo(() => {
     if (!user) return [];
     return orders.filter(o => {
@@ -194,20 +199,27 @@ const App: React.FC = () => {
                   Create New Trade Offer
                 </button>
               </div>
+              <p className="text-xs text-gray-400 mt-4">Platform Fee: 0.8% applies to all trades</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {orders.map(order => (
-                <div key={order.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div key={order.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2">
+                     <span className="text-[10px] font-bold text-gray-300 bg-gray-50 px-1.5 py-0.5 rounded">0.8% FEE</span>
+                   </div>
                   <div className="flex justify-between items-start mb-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${order.type === 'BUY' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                       {order.type} {order.currency}
                     </span>
                     <span className="text-sm font-medium text-gray-400">{order.status}</span>
                   </div>
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">${order.amount.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500 mt-1">Price: {order.price} USD / {order.currency}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-xs text-gray-400">Fee: ${order.commission.toFixed(2)}</p>
+                      <p className="text-xs font-bold text-gray-500">Total: ${order.totalAmount.toLocaleString()}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
@@ -395,10 +407,14 @@ const App: React.FC = () => {
                           </div>
                           <div>
                             <p className="font-bold text-gray-900">{o.amount.toLocaleString()} {o.currency}</p>
-                            <p className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()} • ID: {o.id.slice(0, 8)}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString()}</p>
+                              <span className="text-[10px] text-gray-300">•</span>
+                              <p className="text-[10px] text-gray-400">Fee: ${o.commission.toFixed(2)}</p>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex flex-col items-end gap-1">
                           <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${
                             o.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' : 
                             o.status === OrderStatus.ESCROW_LOCKED ? 'bg-orange-100 text-orange-700' :
@@ -406,6 +422,7 @@ const App: React.FC = () => {
                           }`}>
                             {o.status}
                           </span>
+                          <p className="text-[10px] text-gray-400 font-mono">ID: {o.id.slice(0, 8)}</p>
                         </div>
                       </div>
                     ))

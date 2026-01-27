@@ -40,6 +40,8 @@ export interface Order {
   amount: number;
   currency: string;
   price: number;
+  commission: number;
+  totalAmount: number;
   status: OrderStatus;
   creatorId: string;
   creatorEmail: string;

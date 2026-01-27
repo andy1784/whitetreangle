@@ -25,12 +25,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ orders, onUpdateStatus }) => {
           <p className="text-2xl font-bold text-blue-600">${orders.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}</p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-gray-400 text-xs font-semibold uppercase">Active Escrows</p>
-          <p className="text-2xl font-bold text-orange-600">{orders.filter(o => o.status === OrderStatus.ESCROW_LOCKED).length}</p>
+          <p className="text-gray-400 text-xs font-semibold uppercase">Total Fees (0.8%)</p>
+          <p className="text-2xl font-bold text-indigo-600">${orders.reduce((acc, curr) => acc + curr.commission, 0).toLocaleString()}</p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-gray-400 text-xs font-semibold uppercase">Completed</p>
-          <p className="text-2xl font-bold text-green-600">{orders.filter(o => o.status === OrderStatus.COMPLETED).length}</p>
+          <p className="text-gray-400 text-xs font-semibold uppercase">Active Escrows</p>
+          <p className="text-2xl font-bold text-orange-600">{orders.filter(o => o.status === OrderStatus.ESCROW_LOCKED).length}</p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <p className="text-gray-400 text-xs font-semibold uppercase">Disputes</p>
@@ -59,8 +59,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ orders, onUpdateStatus }) => {
               <tr>
                 <th className="px-6 py-3">Order ID</th>
                 <th className="px-6 py-3">User</th>
-                <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3">Base Amount</th>
+                <th className="px-6 py-3">Fee (0.8%)</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Action</th>
               </tr>
@@ -70,12 +70,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ orders, onUpdateStatus }) => {
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm font-mono text-gray-400">{order.id.slice(0, 8)}...</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.creatorEmail}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900 font-semibold">${order.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.type === 'BUY' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {order.type}
-                    </span>
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900 font-semibold">${order.amount.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-sm text-indigo-600 font-medium">${order.commission.toFixed(2)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       order.status === OrderStatus.COMPLETED ? 'bg-green-50 text-green-700' : 

@@ -14,12 +14,15 @@ export const getAiSupportResponse = async (userMessage: string, context: string)
         1. Buyer pays via PayPal to our Escrow.
         2. Seller delivers the electronic asset.
         3. Escrow releases PayPal funds to Seller once Buyer confirms receipt.
+        
+        Platform Fee: WhiteTriangle charges a flat 0.8% commission on all successful trades to maintain the escrow infrastructure.
+        
         Current Context: ${context}.
         Be professional, concise, and helpful. Use Google Search to provide up-to-date market rates or security advice if relevant.
         You have a high thinking budget for complex reasoning; use it to ensure user safety and precise guidance.`,
         tools: [{ googleSearch: {} }],
         thinkingConfig: { thinkingBudget: 32768 },
-        temperature: 1, // Recommended for thinking models to allow exploration
+        temperature: 1,
       },
     });
 
